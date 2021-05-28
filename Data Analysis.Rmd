@@ -1,0 +1,145 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r import dataset}
+library(readxl)
+seer <- read_excel("D:/Slides/MATLAB/Data Analysis/seer.xlsx")
+View(seer)
+```
+
+```{r pie chart data}
+age<-table(seer$`Age recode with <1 year olds`)
+gender<-table(seer$Sex)
+site<-table(seer$`Site recode ICD-O-3/WHO 2008`)
+grade<-table(seer$`Grade (thru 2017)`)
+
+Age<-as.vector(age)
+Gender<-as.vector(gender)
+Site<-as.vector(site)
+Grade<-as.vector(grade)
+```
+
+```{r pie chart}
+par(mfrow=c(2,2),cex=0.7,mar=c(1,2,3,1),cex.main=2)
+
+pct1<-round(Age/sum(Age)*100)
+labels1<-c("\n 20-24","25-29","30-34","35-39","40-44","45-49","50-54","55-59")
+labels1.1<-paste(labels1,"(",pct1,"%",")",sep = " ")
+pie(Age,labels = labels1.1,main = "Age of Diagnosis")
+
+pct2<-round(Gender/sum(Gender)*100)
+labels2<-c("Male","Female")
+labels2.1<-paste(labels2,"(",pct2,"%",")",sep = " ")
+pie(Gender,labels = labels2.1,main = "Gender")
+
+pct3<-round(Site/sum(Site)*100)
+labels3<-c("Hypopharynx","Nasopharynx"," \n\n\n Oropharynx","\n Oral Cavity and \n Pharynx")
+labels3.1<-paste(labels3,"(",pct3,"%",")",sep = " ")
+pie(Site,labels = labels3.1,main = "Site Record")
+
+pct4<-round(Grade/sum(Grade)*100)
+labels4<-c("GradeⅠ","GradeⅡ","GradeⅢ","GradeⅣ")
+labels4.1<-paste(labels4,"(",pct4,"%",")",sep = " ")
+pie(Grade,labels = labels4.1,main = "Tumor Grade")
+```
+
+```{r three line table}
+library(readxl)
+mydata <- read_excel("D:/Slides/MATLAB/Data Analysis/mydata.xlsx")
+View(mydata)
+
+require(table1)
+mydata$Sex<-factor(mydata$Sex,levels = c(1,2),labels = c("Male","Female"))
+
+label(mydata$`Age recode with <1 year olds`) <- "Age"
+label(mydata$Sex)<- "Sex"
+label(mydata$`Grade (thru 2017)`)<- "Grade"
+label(mydata$`Site recode ICD-O-3/WHO 2008`) <- "Site"
+
+units(mydata$`Age recode with <1 year olds`) <- "years"
+
+table1(~ Sex+mydata$`Age recode with <1 year olds`+mydata$`Grade (thru 2017)` | mydata$`Site recode ICD-O-3/WHO 2008`, data=mydata, overall="Total")
+```
+
+
+```{r KM survival curve}
+library("survival")
+library("survminer")
+attach(seer)
+
+fit <- survfit(Surv(Survivalmonths,Status) ~ Sex, data = seer)
+summary(fit)
+ggsurvplot(fit,
+           data = seer,
+           conf.int = TRUE,# 显示置信区间
+           linetype = "strata", # 根据性别分组自动设置曲线类型
+           surv.median.line = "hv", # 设置中位生存期显示
+           ggtheme = theme_bw(), # 设置ggplot2主题
+           palette = c("#E7B800", "#2E9FDF","brown"),#设置颜色
+           risk.table = TRUE, # 添加风险表
+           risk.table.col = "strata",#风险表颜色
+           pval = TRUE,# 添加P值
+           add.all = TRUE, # 添加总患者生存曲线
+           xlab = "Follow up time(months)", # 指定x轴标签
+           legend = c(0.8,0.75), # 指定图例位置
+           legend.title = "", # 设置图例标题，这里设置不显示标题，用空格替代
+           legend.labs = c("All", "Male","Female"), # 指定图例分组标签
+           break.x.by = 20)  # 设置x轴刻度间距
+ggtitle("KM Survival Curve")
+SaveDR <- c("D:\ Slides\ MATLAB\ Data Analysis") # 保存图片的路径
+png(filename = paste0(SaveDR,"KM Survival Curve",".png") , # 图片格式与文件名
+    width = 600, height = 800)
+survdiff(Surv(Survivalmonths,Status)~Sex)
+```
+
+```{r}
+data1<-seer[which(seer$`Site recode ICD-O-3/WHO 2008`=="Nasopharynx"),]
+data2<-seer[which(seer$`Site recode ICD-O-3/WHO 2008`=="Hypopharynx"),]
+data3<-seer[which(seer$`Site recode ICD-O-3/WHO 2008`=="Oropharynx"),]
+data4<-seer[which(seer$`Site recode ICD-O-3/WHO 2008`=="Other Oral Cavity and Pharynx"),]
+
+fit1<- survfit(Surv(Survivalmonths,Status) ~ Sex, data = data1)
+fit2<- survfit(Surv(Survivalmonths,Status) ~ Sex, data = data2)
+fit3<- survfit(Surv(Survivalmonths,Status) ~ Sex, data = data3)
+fit4<- survfit(Surv(Survivalmonths,Status) ~ Sex, data = data4)
+
+par(mfrow=c(2,2))
+plot(fit1,main="Nasopharynx",col=c("blue","red"),
+     xlab = "Follow up time (months)",ylab="Survival probability")
+legend("topright",c("Male","Female"), lty=c(1,1),col=c("blue","red"),cex=0.7,bty="n")
+survdiff(Surv(Survivalmonths,Status)~Sex,data = data1)
+
+plot(fit2,main="Hypopharynx",col=c("blue","red"),
+     xlab = "Follow up time (months)",ylab="Survival probability")
+legend("topright",c("Male","Female"), lty=c(1,1),col=c("blue","red"),cex=0.7,bty="n")
+survdiff(Surv(Survivalmonths,Status)~Sex,data = data2)
+
+plot(fit3,main="Oropharynx",col=c("blue","red"),
+     xlab = "Follow up time (months)",ylab="Survival probability")
+legend("topright",c("Male","Female"), lty=c(1,1),col=c("blue","red"),cex=0.7,bty="n")
+survdiff(Surv(Survivalmonths,Status)~Sex,data = data3)
+
+plot(fit4,main="Oral Cavity and Pharynx",col=c("blue","red"),
+     xlab = "Follow up time (months)",ylab="Survival probability")
+legend("topright",c("Male","Female"), lty=c(1,1),col=c("blue","red"),cex=0.7,bty="n")
+survdiff(Surv(Survivalmonths,Status)~Sex,data = data4)
+
+```
+
+```{r}
+library(ggplot2)
+library(cowplot)
+
+ggplot(mydata, aes(`Age(years)`, `Survival months`, color = Grade)) + 
+  geom_point()
+```
+
+
+
+
+
+
+
+
